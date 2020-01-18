@@ -1,0 +1,89 @@
+## QR Code Field definition
+##
+## Encoding of this file: UTF-8
+##
+## #############################################################################
+## Lines starting with # are ignored
+## Empty lines are ignored
+## Lines are trimmed
+## ¶ Means \n in the output, needs always to be at the end of the line
+## %var is replaced with var from $this->data, % needs to be the first char
+## Other Texts are passed through
+## #############################################################################
+
+# QRType
+SPC¶
+# Version
+0200¶
+# Coding Type
+1¶
+
+# Konto
+%iban¶
+
+## Adresse
+# Adress-Typ
+S¶
+%address1¶
+%address2¶
+%address3¶
+
+## TODO !!!!!!!!!!!!!!!!!!!
+# Postleitzahl
+2501¶
+# Ort
+Biel¶
+# Land
+CH¶
+
+## TODO !!!!!!! EZE Addresse
+
+¶
+¶
+¶
+¶
+¶
+¶
+¶
+
+## Currency / Amount
+%amount¶
+%currency¶
+
+## Address
+#Adress-Typ
+S¶
+%address_sender1¶
+%address_sender2¶
+%address_sender3¶
+
+## TODO !!!!!!!!!!!!!!!!!!!
+# Postleitzahl
+9400¶
+# Ort
+Rorschach¶
+# Land
+CH¶
+
+# Referenztyp
+QRR¶
+
+# Referenz
+%reference¶
+
+## Additional Information
+%message¶
+
+# Trailer
+EPD¶
+
+# Rechnungsinformationen
+%billinfo¶
+
+# AV1 – Parameter
+%av1¶
+# AV2 – Parameter
+%av2
+
+
+

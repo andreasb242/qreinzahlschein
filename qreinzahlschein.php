@@ -22,6 +22,8 @@ define('EZ_H', 105);
 // mm / PDF Points
 define('SCALE_FACTOR', 72/25.4);
 
+// Newline char, UTF-8 => more than one bye
+define('NEWLINE_CHAR', '¶');
 
 /**
  * Class to generate single sided QR Rechnung
@@ -85,16 +87,53 @@ class QrEz {
 	protected $data = array();
 
 	/**
+	 * Formatter for specific fields, only for printing, not for QR Code
+	 */
+	protected $printFormat = array();
+
+	/**
+	 * Placeholder / Contents of the QR Code:
+	 * newline is ignored, use ¶ for Newline
+	 * each line is trimmed,
+	 * use %placeholder to get data out of the $this->data array
+	 */
+	protected $qrCodeFields = '';
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->pdf = new FPDF('P', 'mm', 'A4');
-		
+
+		$this->qrCodeFields = file_get_contents('qrfields.txt');
+
 		// Load custom fonts
 		$this->pdf->AddFont('LiberationSans', '', 'LiberationSans-Regular.php');
 		$this->pdf->AddFont('LiberationSans', 'B', 'LiberationSans-Bold.php');
-		
+
 		$this->pdf->SetCreator('andreasb242/qreinzahlschein');
+
+
+		$this->printFormat['reference'] = function($val) {
+			$t = '';
+			$len = strlen($val);
+
+			for ($i = 0; $i < $len; $i++) {
+				$c = $val[$len - $i - 1];
+				
+				if ($i % 5 == 0) {
+					$t = ' ' . $t;
+				}
+				
+				$t = $c . $t;
+			}
+			
+			return $t;
+		};
+
+		$this->printFormat['amount'] = function($val) {
+			return number_format($val, 2, '.', ' ');
+		};
 	}
 	
 	/**
@@ -126,9 +165,53 @@ class QrEz {
 			$this->pdf->Line(62, A4_H - EZ_H, 62, A4_H);
 		}
 
-		$qrcode = new QRcode('your message here', 'H'); // error level : L, M, Q, H
+		$qrdata = $this->createQrData();
+
+		// Error Level M: «ig-qr-bill-de.pdf», Point 5.1, Page 35
+		$qrcode = new QRcode($qrdata, 'M'); // error level : L, M, Q, H
 		$qrcode->disableBorder();
-		$qrcode->displayFPDF($this->pdf, 67, A4_H - EZ_H + 17, 46);
+		
+		$qrWidth = 46;
+		$qrX = 67;
+		$qrY = A4_H - EZ_H + 17;
+		$qrcode->displayFPDF($this->pdf, $qrX, $qrY, $qrWidth);
+
+		// Print swiss cross over QR Code
+		// White Background
+		$crossSize = 7;
+		$crossX = $qrX + ($qrWidth - $crossSize) / 2;
+		$crossY = $qrY + ($qrWidth - $crossSize) / 2;
+		$this->pdf->SetFillColor(0xFF, 0xFF, 0xFF);
+		$this->pdf->SetY($crossY);
+		$this->pdf->SetX($crossX);
+		$this->pdf->Cell($crossSize, $crossSize, '', false, 0, '', true);
+
+		// Black flag
+		$this->pdf->SetFillColor(0x00, 0x00, 0x00);
+		$crossSize = 6;
+		$crossX = $qrX + ($qrWidth - $crossSize) / 2;
+		$crossY = $qrY + ($qrWidth - $crossSize) / 2;
+		$this->pdf->SetY($crossY);
+		$this->pdf->SetX($crossX);
+		$this->pdf->Cell($crossSize, $crossSize, '', false, 0, '', true);
+
+		// White Cross
+		$this->pdf->SetFillColor(0xFF, 0xFF, 0xFF);
+		$crossSizeX = 3.9;
+		$crossSizeY = 1.12;
+		$crossX = $qrX + ($qrWidth - $crossSizeX) / 2;
+		$crossY = $qrY + ($qrWidth - $crossSizeY) / 2 - 0.13;
+		$this->pdf->SetY($crossY);
+		$this->pdf->SetX($crossX);
+		$this->pdf->Cell($crossSizeX, $crossSizeY, '', false, 0, '', true);
+		$crossSizeX = 1.12;
+		$crossSizeY = 3.9;
+		$crossX = $qrX + ($qrWidth - $crossSizeX) / 2;
+		$crossY = $qrY + ($qrWidth - $crossSizeY) / 2 - 0.13;
+		$this->pdf->SetY($crossY);
+		$this->pdf->SetX($crossX);
+		$this->pdf->Cell($crossSizeX, $crossSizeY, '', false, 0, '', true);
+
 
 		// used for debugCellBorder
 		$this->pdf->SetDrawColor(0xff, 0x00, 0x00);
@@ -136,6 +219,46 @@ class QrEz {
 		// Print Data, see «Style Guide Deutsch.pdf», Page 18
 		$this->printReceipt();
 		$this->printPayment();
+	}
+
+	/**
+	 * Create a QR Code String
+	 */
+	protected function createQrData() {
+		$t = '';
+		foreach(explode("\n", $this->qrCodeFields) as $line) {
+			$line = trim($line);
+			if (empty($line)) {
+				continue;
+			}
+			if (substr($line, 0, 1) == '#') {
+				continue;
+			}
+
+			$newline = false;			
+			if (substr($line, -strlen(NEWLINE_CHAR)) == NEWLINE_CHAR) {
+				$newline = true;
+				
+				$line = substr($line, 0, -strlen(NEWLINE_CHAR));
+			}
+
+			if (substr($line, 0, 1) == '%') {
+				$d = '';
+				$key = trim(substr($line, 1));
+				
+				if (isset($this->data[$key])) {
+					$t .= $this->data[$key];
+				}
+			} else {
+				$t .= $line;
+			}
+
+			if ($newline) {
+				$t .= "\n";
+			}
+		}
+
+		return $t;
 	}
 
 	/**
@@ -152,6 +275,7 @@ class QrEz {
 		$this->paddingOffset('+9');
 
 		$this->printText('%reference', '1');
+		
 		$this->printText('reference', 'T');
 		$this->paddingOffset('+9');
 
@@ -273,6 +397,11 @@ class QrEz {
 		} else {
 			if (isset($this->data[$textId])) {
 				$text = $this->data[$textId];
+				
+				if (isset($this->printFormat[$textId])) {
+					$text = $this->printFormat[$textId]($text);
+				}
+				
 			} else {
 				return;
 			}
@@ -328,7 +457,7 @@ class QrEz {
 	public function printDebugGrid() {
 		$this->pdf->SetDrawColor(0x75, 0xbe, 0xeb);
 		$this->pdf->SetFillColor(0xcc, 0xef, 0xfc);
-		
+
 		$this->pdf->SetX(0);
 		// Top Padding
 		$this->pdf->SetY(A4_H - EZ_H);
@@ -403,16 +532,20 @@ $ez->setData('address1', 'Robert Schneider AG');
 $ez->setData('address3', 'Rue du Lac 1268');
 $ez->setData('address4', '2501 Biel');
 
-$ez->setData('reference', '21 00000 00003 13947 14300 09017');
+$ez->setData('reference', '210000000003139471430009017');
 $ez->setData('address_sender1', 'Pia-Maria Rutschmann-Schnyder');
 $ez->setData('address_sender2', 'Grosse Marktgasse 28');
 //$ez->setData('address_sender3', '');
 $ez->setData('address_sender4', '9400 Rorschach');
 
 $ez->setData('currency', 'CHF');
-$ez->setData('amount', '1 234.50');
+$ez->setData('amount', '1234.50');
 
+$ez->setData('message', 'Auftrag vom 15.06.2020');
+$ez->setData('billinfo', '//S1/10/10201409/11/200701/20/140.000-53/30/102673831/31/200615/32/7.7/33/7.7:139.40/40/0:30');
 
+$ez->setData('av1', 'Name AV1: UV;UltraPay005;12345');
+$ez->setData('av2', 'Name AV2: XY;XYService;54321');
 
 
 $ez->debugGrid = true;
