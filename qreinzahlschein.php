@@ -74,6 +74,17 @@ class QrEz {
 	protected $cellX;
 
 	/**
+	 * Format data, different for Receipt / Payment part
+	 * (except header, for both the same)
+	 */
+	protected $format = array('H' => array('flag' => 'b', 'size' => 11));
+
+	/**
+	 * User data
+	 */
+	protected $data = array();
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -84,6 +95,13 @@ class QrEz {
 		$this->pdf->AddFont('LiberationSans', 'B', 'LiberationSans-Bold.php');
 		
 		$this->pdf->SetCreator('andreasb242/qreinzahlschein');
+	}
+	
+	/**
+	 * Set data String
+	 */
+	public function setData($key, $value) {
+		$this->data[$key] = $value;
 	}
 	
 	/**
@@ -119,94 +137,156 @@ class QrEz {
 		$this->printReceipt();
 		$this->printPayment();
 	}
-	
+
+	/**
+	 * Print Address and Reference
+	 */
+	protected function printAddrRef() {
+		$this->printText('%account', '1');
+		$this->printText('iban', 'T');
+		$this->printText('address1');
+		$this->printText('address2');
+		$this->printText('address3');
+		$this->printText('address4');
+		// Padding 9pt see «Style Guide Deutsch.pdf», Page 15
+		$this->paddingOffset('+9');
+
+		$this->printText('%reference', '1');
+		$this->printText('reference', 'T');
+		$this->paddingOffset('+9');
+
+		$this->printText('%payedBy', '1');
+		$this->printText('address_sender1', 'T');
+		$this->printText('address_sender2');
+		$this->printText('address_sender3');
+		$this->printText('address_sender4');
+		$this->paddingOffset('+9');
+	}
+
 	/**
 	 * Print receipt part
 	 */
 	protected function printReceipt() {
+		// Font definitions for Receipt
+		$this->format['1'] = array('flag' => 'b', 'size' => 6);
+		$this->format['1r'] = array('flag' => 'b', 'size' => 6, 'align' => 'R');
+		$this->format['T'] = array('flag' => '', 'size' => 8);
+
+		// Start at top
 		$this->pdf->SetY(A4_H - EZ_H + 5);
-		
+
+		// Set cell size and position
 		$this->cellWidth = 52;
 		$this->cellX = 5;
 		$this->pdf->SetX($this->cellX);
 
-		$this->printText('receipt', '%H');
+		// Print header
+		$this->printText('%receipt', 'H');
 
 		$this->paddingOffset(12);
-		$this->printText('account', '%1');
-		$this->printText('CH44 3199 9123 0008 8901 2', 'T');
-		$this->printText('Robert Schneider AG');
-		$this->printText('Rue du Lac 1268');
-		$this->printText('2501 Biel');
-		// Padding 9pt see «Style Guide Deutsch.pdf», Page 15
-		$this->paddingOffset('+9');
+		
+		// Print main data
+		$this->printAddrRef();
 
-		$this->printText('reference', '%1');
-		$this->printText('21 00000 00003 13947 14300 09017', 'T');
-		$this->paddingOffset('+9');
-
-		$this->printText('payedBy', '%1');
-		$this->printText('Pia-Maria Rutschmann-Schnyder', 'T');
-		$this->printText('Grosse Marktgasse 28');
-		$this->printText('9400 Rorschach');
-		$this->paddingOffset('+9');
-
+		// Print currency and amount
 		$this->cellWidth = 15;
 		$this->paddingOffset(68);
 
-		$this->printText('currency', '%1');
-		$this->printText('CHF', 'T');
+		$this->printText('%currency', '1');
+		$this->printText('currency', 'T');
 
 		$this->cellWidth = 30;
 		$this->cellX = 20;
 		$this->paddingOffset(68);
 
-		$this->cellX = 20;
-		$this->printText('amount', '%1');
-		$this->printText('2 500.25', 'T');
+		$this->printText('%amount', '1');
+		$this->printText('amount', 'T');
+		
+		// Acceptance Point Header
+		$this->cellX = 5;
+		$this->cellWidth = 52;
+		$this->paddingOffset(82);
+		$this->printText('%acceptancePoint', '1r');
 	}
 
 	/**
 	 * Print QR/Payment part
 	 */
 	protected function printPayment() {
+		// Font definitions for Payment part
+		$this->format['1'] = array('flag' => 'b', 'size' => 8);
+		$this->format['T'] = array('flag' => '', 'size' => 10);
+
+		// Start at top
 		$this->pdf->SetY(A4_H - EZ_H + 5);
 		
+		// Set cell size and position
 		$this->cellWidth = 46;
 		$this->cellX = 67;
 		$this->pdf->SetX($this->cellX);
 
-		$this->printText('paymentPart', '%H');
+		// Print header
+		$this->printText('%paymentPart', 'H');
+
+
+		// Print main data
+		// Start at top, right of header
+		$this->pdf->SetY(A4_H - EZ_H + 5);
+		$this->cellWidth = 87;
+		$this->cellX = 118;
+		$this->pdf->SetX($this->cellX);
+		$this->printAddrRef();
+
+
+		// Print currency and amount
+		$this->cellWidth = 19;
+		$this->cellX = 67;
+		$this->paddingOffset(68);
+
+		$this->printText('%currency', '1');
+		$this->printText('currency', 'T');
+
+		$this->cellWidth = 30;
+		$this->cellX = 86;
+		$this->paddingOffset(68);
+
+		$this->printText('%amount', '1');
+		$this->printText('amount', 'T');
 	}
 
 	/**
 	 * Print a language dependent text or a value
 	 *
-	 * @param $text Text to print
-	 * @param $flags '%' for Placeholder Text
-	 *               'H' Header Text
-	 *               '1' Subheader 1
-	 *               'T' Text
+	 * @param $textid Text ID to print, starting with % then it's a language text
+	 * @param $format 'H' Header Text
+	 *                '1' Subheader
+	 *                'T' Text
+	 *                format is defined in $this->format
 	 */
-	protected function printText($text, $flags = '') {
+	protected function printText($textId, $format = '') {
 		global $qrTexts;
 
-		if (strpos($flags, '%') !== false) {
+		$text = '';
+		if (substr($textId, 0, 1) == '%') {
 			$lang = $qrTexts[$this->lang];
-			$text = $lang[$text];
+			$text = $lang[substr($textId, 1)];
+		} else {
+			if (isset($this->data[$textId])) {
+				$text = $this->data[$textId];
+			} else {
+				return;
+			}
 		}
 
-		if (strpos($flags, 'H') !== false) {
-			$this->pdf->SetFont('LiberationSans', 'B', 11);
-			$this->cellHeight = 11 / SCALE_FACTOR;
-		}
-		if (strpos($flags, '1') !== false) {
-			$this->pdf->SetFont('LiberationSans', 'B', 6);
-			$this->cellHeight = 6 / SCALE_FACTOR;
-		}
-		if (strpos($flags, 'T') !== false) {
-			$this->pdf->SetFont('LiberationSans', '', 8);
-			$this->cellHeight = 8 / SCALE_FACTOR;
+		$align = 'L';
+		if (isset($this->format[$format])) {
+			$formatInfo = $this->format[$format];
+			$this->pdf->SetFont('LiberationSans', $formatInfo['flag'], $formatInfo['size']);
+			$this->cellHeight = $formatInfo['size'] / SCALE_FACTOR;
+			
+			if (isset($formatInfo['align'])) {
+				$align = $formatInfo['align'];
+			}
 		}
 
 		$border = 0;
@@ -215,7 +295,7 @@ class QrEz {
 		}
 		
 		$text = utf8_decode($text);
-		$this->pdf->Cell($this->cellWidth, $this->cellHeight, $text, $border);
+		$this->pdf->Cell($this->cellWidth, $this->cellHeight, $text, $border, 0, $align);
 
 		$this->pdf->SetY($this->pdf->GetY() + $this->cellHeight);
 		$this->pdf->SetX($this->cellX);
@@ -316,6 +396,25 @@ class QrEz {
 
 $ez = new QrEz();
 $ez->getPdf()->SetAuthor('Demo Application');
+
+$ez->setData('iban', 'CH44 3199 9123 0008 8901 2');
+$ez->setData('address1', 'Robert Schneider AG');
+//$ez->setData('address2', '');
+$ez->setData('address3', 'Rue du Lac 1268');
+$ez->setData('address4', '2501 Biel');
+
+$ez->setData('reference', '21 00000 00003 13947 14300 09017');
+$ez->setData('address_sender1', 'Pia-Maria Rutschmann-Schnyder');
+$ez->setData('address_sender2', 'Grosse Marktgasse 28');
+//$ez->setData('address_sender3', '');
+$ez->setData('address_sender4', '9400 Rorschach');
+
+$ez->setData('currency', 'CHF');
+$ez->setData('amount', '1 234.50');
+
+
+
+
 $ez->debugGrid = true;
 $ez->debugCellBorder = true;
 $ez->createQrEz();
