@@ -20,5 +20,8 @@ and therefore are displayed equals on all devices, and are available for free.
 
 https://github.com/liberationfonts/liberation-fonts
 
+# QRCode
+https://prgm.spipu.net/view/27
+
 
 
