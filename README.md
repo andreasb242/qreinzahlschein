@@ -3,6 +3,8 @@ QR-Einzahlschein / QR-Rechnung (Schweiz)
 
 *Work in progress* not yet ready for production!
 
+# License
+GPL / Proprietary (contact me, see source header)
 
 # Specification
 Specifications are available for download at:

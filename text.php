@@ -3,7 +3,7 @@
 /**
  * QR-Einzahlschein / QR-Rechnung
  * 
- * License: GPL
+ * License: GPL / Proprietary (contact me)
  * Author: Andreas Butti, andreasbutti@gmail.com
  */
 

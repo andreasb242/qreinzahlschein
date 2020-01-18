@@ -3,7 +3,7 @@
 /**
  * QR-Einzahlschein / QR-Rechnung
  * 
- * License: GPL / 
+ * License: GPL / Proprietary (contact me)
  * Author: Andreas Butti, andreasbutti@gmail.com
  */
 
@@ -275,14 +275,16 @@ class QrEz {
 
 	/**
 	 * Print Address and Reference
+	 *
+	 * @param $withMessage Print message
 	 */
-	protected function printAddrRef() {
+	protected function printAddrRef($withMessage) {
 		$this->printText('%account', '1');
 		$this->printText('iban', 'T');
 		$this->printText('address1');
 		$this->printText('address2');
 		$this->printText('address3');
-		$this->printText('address4');
+		$this->printText(array('addressZip','addressCity'));
 		// Padding 9pt see «Style Guide Deutsch.pdf», Page 15
 		$this->paddingOffset('+9');
 
@@ -291,11 +293,18 @@ class QrEz {
 		$this->printText('reference', 'T');
 		$this->paddingOffset('+9');
 
+		if ($withMessage && (isset($this->data['message']) || isset($this->data['billinfo']))) {
+			$this->printText('%additionalInfo', '1');
+			$this->printText('message', 'T');
+			$this->printText('billinfo', 'T');
+			$this->paddingOffset('+9');
+		}
+
 		$this->printText('%payedBy', '1');
 		$this->printText('address_sender1', 'T');
 		$this->printText('address_sender2');
 		$this->printText('address_sender3');
-		$this->printText('address_sender4');
+		$this->printText(array('address_senderZip', 'address_senderCity'));
 		$this->paddingOffset('+9');
 	}
 
@@ -322,7 +331,7 @@ class QrEz {
 		$this->paddingOffset(12);
 		
 		// Print main data
-		$this->printAddrRef();
+		$this->printAddrRef(false);
 
 		// Print currency and amount
 		$this->cellWidth = 15;
@@ -371,7 +380,7 @@ class QrEz {
 		$this->cellWidth = 87;
 		$this->cellX = 118;
 		$this->pdf->SetX($this->cellX);
-		$this->printAddrRef();
+		$this->printAddrRef(true);
 
 
 		// Print currency and amount
@@ -388,6 +397,51 @@ class QrEz {
 
 		$this->printText('%amount', '1');
 		$this->printText('amount', 'T');
+
+		if (isset($this->data['av1']) || isset($this->data['av2'])) {
+			$this->cellWidth = 143;
+			$this->cellX = 67;
+			$this->paddingOffset(90);
+			$this->printText('av1', 'T');
+			$this->printText('av2', 'T');
+		}
+	}
+
+	/**
+	 * Print a language dependent text or a value
+	 *
+	 * @param $textid Text ID to print, starting with % then it's a language text
+	 */
+	protected function formatText($textId) {
+		global $qrTexts;
+
+		$text = '';
+		if (is_array($textId)) {
+			foreach($textId as $ti) {
+				if (!empty($text)) {
+					$text .= ' ';
+				}
+				$text .= $this->formatText($ti);
+			}
+		} else {
+			if (substr($textId, 0, 1) == '%') {
+				$lang = $qrTexts[$this->lang];
+				$text = $lang[substr($textId, 1)];
+			} else {
+				if (isset($this->data[$textId])) {
+					$text = $this->data[$textId];
+					
+					if (isset($this->printFormat[$textId])) {
+						$text = $this->printFormat[$textId]($text);
+					}
+					
+				} else {
+					return false;
+				}
+			}
+		}
+		
+		return $text;
 	}
 
 	/**
@@ -400,23 +454,9 @@ class QrEz {
 	 *                format is defined in $this->format
 	 */
 	protected function printText($textId, $format = '') {
-		global $qrTexts;
-
-		$text = '';
-		if (substr($textId, 0, 1) == '%') {
-			$lang = $qrTexts[$this->lang];
-			$text = $lang[substr($textId, 1)];
-		} else {
-			if (isset($this->data[$textId])) {
-				$text = $this->data[$textId];
-				
-				if (isset($this->printFormat[$textId])) {
-					$text = $this->printFormat[$textId]($text);
-				}
-				
-			} else {
-				return;
-			}
+		$text = $this->formatText($textId);
+		if ($text === false) {
+			return;
 		}
 
 		$align = 'L';

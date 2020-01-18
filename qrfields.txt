@@ -28,15 +28,14 @@ S¶
 %address2¶
 %address3¶
 
-## TODO !!!!!!!!!!!!!!!!!!!
 # Postleitzahl
-2501¶
+addressZip¶
 # Ort
-Biel¶
+addressCity¶
 # Land
-CH¶
+addressCountry¶
 
-## TODO !!!!!!! EZE Addresse
+## EZE Addresse - currently not mapped
 
 ¶
 ¶
@@ -57,13 +56,12 @@ S¶
 %address_sender2¶
 %address_sender3¶
 
-## TODO !!!!!!!!!!!!!!!!!!!
 # Postleitzahl
-9400¶
+address_senderZip¶
 # Ort
-Rorschach¶
+address_senderCity¶
 # Land
-CH¶
+address_senderCountry¶
 
 # Referenztyp
 QRR¶
