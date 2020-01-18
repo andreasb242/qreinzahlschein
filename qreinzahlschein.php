@@ -3,7 +3,7 @@
 /**
  * QR-Einzahlschein / QR-Rechnung
  * 
- * License: GPL
+ * License: GPL / 
  * Author: Andreas Butti, andreasbutti@gmail.com
  */
 
@@ -24,6 +24,7 @@ define('SCALE_FACTOR', 72/25.4);
 
 // Newline char, UTF-8 => more than one bye
 define('NEWLINE_CHAR', '¶');
+
 
 /**
  * Class to generate single sided QR Rechnung
@@ -144,39 +145,13 @@ class QrEz {
 	}
 	
 	/**
-	 * Create QR Code Page
+	 * Print swiss flag
+	 *
+	 * @param $qrWidth Width of the QR Code
+	 * @param $qrX QR X Position
+	 * @param $qrY QR Y Position
 	 */
-	public function createQrEz() {
-		$this->pdf->AddPage();
-		$this->pdf->SetMargins(0, 0, 0); 
-		$this->pdf->SetAutoPageBreak(false);
-		
-		if ($this->debugGrid) {
-			$this->printDebugGrid();
-		}
-		
-		if ($this->grid == 'line') {
-			$this->pdf->SetDrawColor(0x88, 0x88, 0x88);
-
-			// Top line
-			$this->pdf->Line(0, A4_H - EZ_H, A4_W, A4_H - EZ_H);
-
-			// Center line
-			$this->pdf->Line(62, A4_H - EZ_H, 62, A4_H);
-		}
-
-		$qrdata = $this->createQrData();
-
-		// Error Level M: «ig-qr-bill-de.pdf», Point 5.1, Page 35
-		$qrcode = new QRcode($qrdata, 'M'); // error level : L, M, Q, H
-		$qrcode->disableBorder();
-		
-		$qrWidth = 46;
-		$qrX = 67;
-		$qrY = A4_H - EZ_H + 17;
-		$qrcode->displayFPDF($this->pdf, $qrX, $qrY, $qrWidth);
-
-		// Print swiss cross over QR Code
+	protected function printSwissFlag($qrWidth, $qrX, $qrY) {
 		// White Background
 		$crossSize = 7;
 		$crossX = $qrX + ($qrWidth - $crossSize) / 2;
@@ -211,6 +186,43 @@ class QrEz {
 		$this->pdf->SetY($crossY);
 		$this->pdf->SetX($crossX);
 		$this->pdf->Cell($crossSizeX, $crossSizeY, '', false, 0, '', true);
+	}
+	
+	/**
+	 * Create QR Code Page
+	 */
+	public function createQrEz() {
+		$this->pdf->AddPage();
+		$this->pdf->SetMargins(0, 0, 0); 
+		$this->pdf->SetAutoPageBreak(false);
+		
+		if ($this->debugGrid) {
+			$this->printDebugGrid();
+		}
+		
+		if ($this->grid == 'line') {
+			$this->pdf->SetDrawColor(0x88, 0x88, 0x88);
+
+			// Top line
+			$this->pdf->Line(0, A4_H - EZ_H, A4_W, A4_H - EZ_H);
+
+			// Center line
+			$this->pdf->Line(62, A4_H - EZ_H, 62, A4_H);
+		}
+
+		$qrdata = $this->createQrData();
+
+		// Error Level M: «ig-qr-bill-de.pdf», Point 5.1, Page 35
+		$qrcode = new QRcode($qrdata, 'M'); // error level : L, M, Q, H
+		$qrcode->disableBorder();
+		
+		$qrWidth = 46;
+		$qrX = 67;
+		$qrY = A4_H - EZ_H + 17;
+		$qrcode->displayFPDF($this->pdf, $qrX, $qrY, $qrWidth);
+
+		// Print swiss cross over QR Code
+		$this->printSwissFlag($qrWidth, $qrX, $qrY);
 
 
 		// used for debugCellBorder
@@ -522,43 +534,4 @@ class QrEz {
 		$this->pdf->Output();
 	}
 }
-
-$ez = new QrEz();
-$ez->getPdf()->SetAuthor('Demo Application');
-
-$ez->setData('iban', 'CH44 3199 9123 0008 8901 2');
-$ez->setData('address1', 'Robert Schneider AG');
-//$ez->setData('address2', '');
-$ez->setData('address3', 'Rue du Lac 1268');
-$ez->setData('address4', '2501 Biel');
-
-$ez->setData('reference', '210000000003139471430009017');
-$ez->setData('address_sender1', 'Pia-Maria Rutschmann-Schnyder');
-$ez->setData('address_sender2', 'Grosse Marktgasse 28');
-//$ez->setData('address_sender3', '');
-$ez->setData('address_sender4', '9400 Rorschach');
-
-$ez->setData('currency', 'CHF');
-$ez->setData('amount', '1234.50');
-
-$ez->setData('message', 'Auftrag vom 15.06.2020');
-$ez->setData('billinfo', '//S1/10/10201409/11/200701/20/140.000-53/30/102673831/31/200615/32/7.7/33/7.7:139.40/40/0:30');
-
-$ez->setData('av1', 'Name AV1: UV;UltraPay005;12345');
-$ez->setData('av2', 'Name AV2: XY;XYService;54321');
-
-
-$ez->debugGrid = true;
-$ez->debugCellBorder = true;
-$ez->createQrEz();
-
-$ez->debugGrid = false;
-$ez->debugCellBorder = false;
-
-foreach (array('de', 'fr', 'it', 'en') as $lang) {
-	$ez->lang = $lang;
-	$ez->createQrEz();
-}
-
-$ez->output();
 
