@@ -86,6 +86,11 @@ class QrEz {
 	 * User data
 	 */
 	protected $data = array();
+	
+	/**
+	 * QRCode data of last EZ, stored for debugging
+	 */
+	protected $qrdata = '';
 
 	/**
 	 * Formatter for specific fields, only for printing, not for QR Code
@@ -106,7 +111,7 @@ class QrEz {
 	public function __construct() {
 		$this->pdf = new FPDF('P', 'mm', 'A4');
 
-		$this->qrCodeFields = file_get_contents('qrfields.txt');
+		$this->qrCodeFields = file_get_contents(dirname(__FILE__) . '/qrfields.txt');
 
 		// Load custom fonts
 		$this->pdf->AddFont('LiberationSans', '', 'LiberationSans-Regular.php');
@@ -144,6 +149,21 @@ class QrEz {
 		$this->data[$key] = $value;
 	}
 	
+	/**
+	 * Reset data array
+	 */
+	public function resetData() {
+		$this->data = array();
+		$this->qrdata = '';
+	}
+
+	/**
+	 * @return QRCode data of last EZ, stored for debugging
+	 */
+	public function getLastQrData() {
+		return $this->qrdata;
+	}
+
 	/**
 	 * Print swiss flag
 	 *
@@ -250,7 +270,7 @@ class QrEz {
 			$newline = false;			
 			if (substr($line, -strlen(NEWLINE_CHAR)) == NEWLINE_CHAR) {
 				$newline = true;
-				
+
 				$line = substr($line, 0, -strlen(NEWLINE_CHAR));
 			}
 
@@ -270,6 +290,8 @@ class QrEz {
 			}
 		}
 
+		// Store for later access, e.g. to print as Debug values
+		$this->qrdata = $t;
 		return $t;
 	}
 
@@ -570,8 +592,8 @@ class QrEz {
 	/**
 	 * Output the PDF
 	 */
-	public function output() {
-		$this->pdf->Output();
+	public function output($dest='', $name='', $isUTF8=false) {
+		$this->pdf->Output($dest, $name, $isUTF8);
 	}
 }
 

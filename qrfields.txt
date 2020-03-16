@@ -29,11 +29,11 @@ S¶
 %address3¶
 
 # Postleitzahl
-addressZip¶
+%addressZip¶
 # Ort
-addressCity¶
+%addressCity¶
 # Land
-addressCountry¶
+%addressCountry¶
 
 ## EZE Addresse - currently not mapped
 
@@ -57,11 +57,11 @@ S¶
 %address_sender3¶
 
 # Postleitzahl
-address_senderZip¶
+%address_senderZip¶
 # Ort
-address_senderCity¶
+%address_senderCity¶
 # Land
-address_senderCountry¶
+%address_senderCountry¶
 
 # Referenztyp
 QRR¶
