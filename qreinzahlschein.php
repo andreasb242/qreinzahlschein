@@ -148,7 +148,7 @@ class QrEz {
 	public function setData($key, $value) {
 		$this->data[$key] = $value;
 	}
-	
+
 	/**
 	 * Reset data array
 	 */
@@ -296,13 +296,32 @@ class QrEz {
 	}
 
 	/**
+	 * Format IBAN
+	 *
+	 * @param $iban Unformatted IBAN
+	 */
+	protected function formatIban($iban) {
+		$ibanFormatted = '';
+		for ($i = 0; $i < strlen($iban); $i++) {
+			$ibanFormatted .= $iban[$i];
+			if (($i + 5) % 4 == 0) {
+				$ibanFormatted .= ' ';
+			}
+		}
+		return $ibanFormatted;
+	}
+
+	/**
 	 * Print Address and Reference
 	 *
 	 * @param $withMessage Print message
 	 */
 	protected function printAddrRef($withMessage) {
 		$this->printText('%account', '1');
-		$this->printText('iban', 'T');
+		
+		$this->data['iban.formatted'] = $this->formatIban($this->data['iban']);
+		
+		$this->printText('iban.formatted', 'T');
 		$this->printText('address1');
 		$this->printText('address2');
 		$this->printText('address3');

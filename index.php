@@ -14,7 +14,7 @@ require_once 'qreinzahlschein.php';
 $ez = new QrEz();
 $ez->getPdf()->SetAuthor('Demo Application');
 
-$ez->setData('iban', 'CH44 3199 9123 0008 8901 2');
+$ez->setData('iban', 'CH4431999123000889012');
 $ez->setData('address1', 'Robert Schneider AG');
 $ez->setData('address2', 'Rue du Lac 1268');
 //$ez->setData('address3', '');
